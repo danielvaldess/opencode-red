@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Local workspaces and evidence
+bounties/
+engagements/
+evidence/
+*.har
+*.pcap
+
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+
+# Installer scratch
+.install-test/
