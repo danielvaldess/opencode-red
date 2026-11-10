@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: .
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install validator dependencies
+        run: python3 -m pip install --upgrade pip pyyaml
+
+      - name: Compile Python
+        run: python3 -m py_compile scripts/*.py config/*.py
+
+      - name: Validate command frontmatter
+        run: |
+          python3 - <<'PY'
+          import glob
+          import sys
+          import yaml
+
+          files = sorted(glob.glob("commands/*.md"))
+          bad = []
+          for path in files:
+              text = open(path, encoding="utf-8").read()
+              if not text.startswith("---\n"):
+                  bad.append((path, "missing frontmatter"))
+                  continue
+              end = text.find("\n---", 4)
+              try:
+                  meta = yaml.safe_load(text[4:end])
+              except Exception as exc:
+                  bad.append((path, f"invalid yaml: {exc}"))
+                  continue
+              if not isinstance(meta, dict) or not meta.get("description"):
+                  bad.append((path, "missing description"))
+          if bad:
+              print("invalid commands:", bad)
+              sys.exit(1)
+          print(f"{len(files)} commands validated")
+          PY
+
+      - name: Installer dry-run
+        run: ./install.sh --dry-run
+
+      - name: Shell syntax
+        run: bash -n install.sh scripts/*.sh
